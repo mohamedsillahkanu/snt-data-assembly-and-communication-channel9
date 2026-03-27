@@ -657,9 +657,60 @@
     <div class="modal-body">
 
       <div class="config-tabs">
-        <button class="config-tab active" id="ctabTabs"   onclick="switchConfigTab('tabs')">📑 Tabs</button>
-        <button class="config-tab"         id="ctabJson"   onclick="switchConfigTab('json')">JSON Editor</button>
-        <button class="config-tab"         id="ctabExport" onclick="switchConfigTab('export')">Export</button>
+        <button class="config-tab active" id="ctabScript" onclick="switchConfigTab('script')">🔗 Script URL</button>
+        <button class="config-tab"        id="ctabTabs"   onclick="switchConfigTab('tabs')">📑 Tabs</button>
+        <button class="config-tab"        id="ctabJson"   onclick="switchConfigTab('json')">JSON Editor</button>
+        <button class="config-tab"        id="ctabExport" onclick="switchConfigTab('export')">Export</button>
+      </div>
+
+      <!-- ── SCRIPT URL ─────────────────────────────────── -->
+      <div id="configTabScript">
+        <div style="background:#fff3cd;border:2px solid var(--accent);border-radius:10px;padding:16px;margin-bottom:18px;display:flex;align-items:flex-start;gap:10px;">
+          <span style="font-size:1.4rem;line-height:1;">⚠️</span>
+          <p style="font-size:.85rem;color:#856404;line-height:1.6;margin:0;">This is the <strong>single URL</strong> for everything — data sync, user management, and email notifications. Paste it once here and all features connect automatically.</p>
+        </div>
+        <div style="background:#f0f5ff;border:2px solid var(--primary);border-radius:10px;padding:18px;margin-bottom:16px;">
+          <label style="font-weight:700;font-size:.9rem;color:var(--primary);display:block;margin-bottom:10px;">Google Apps Script Web App URL</label>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input type="text" id="masterScriptUrl"
+              placeholder="https://script.google.com/macros/s/…/exec"
+              style="flex:1;padding:10px 13px;border:2px solid var(--gray-200);border-radius:6px;font-family:monospace;font-size:.82rem;">
+            <button class="btn btn-primary" onclick="saveMasterScriptUrl()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save
+            </button>
+            <button class="btn btn-info" onclick="testScriptConnection()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Test
+            </button>
+          </div>
+          <div id="scriptUrlStatus" style="font-size:.82rem;min-height:20px;padding:2px 0;"></div>
+        </div>
+
+        <div style="background:var(--gray-100);border-radius:10px;padding:16px;">
+          <p style="font-weight:700;font-size:.85rem;color:var(--gray-800);margin-bottom:10px;">What this URL controls:</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.82rem;">
+            <div style="background:#fff;padding:10px;border-radius:8px;border:1px solid var(--gray-200);">
+              <div style="font-weight:700;color:var(--primary);margin-bottom:4px;">👥 Users</div>
+              Sign up, login, user list — all read/written to the Google Sheet
+            </div>
+            <div style="background:#fff;padding:10px;border-radius:8px;border:1px solid var(--gray-200);">
+              <div style="font-weight:700;color:var(--success);margin-bottom:4px;">💾 Data Sync</div>
+              Every item saved gets backed up to Google Drive automatically
+            </div>
+            <div style="background:#fff;padding:10px;border-radius:8px;border:1px solid var(--gray-200);">
+              <div style="font-weight:700;color:var(--purple);margin-bottom:4px;">📧 Email</div>
+              Notifications sent to all platform users on activity
+            </div>
+            <div style="background:#fff;padding:10px;border-radius:8px;border:1px solid var(--gray-200);">
+              <div style="font-weight:700;color:var(--warning);margin-bottom:4px;">🔄 Load on login</div>
+              Items restored from Drive on every login — no data loss
+            </div>
+          </div>
+          <div style="margin-top:12px;padding:10px;background:#e8f5e9;border-radius:6px;font-size:.78rem;color:#2e7d32;">
+            💡 <strong>How to get the URL:</strong> Open Google Sheet → Extensions → Apps Script → Deploy → Manage deployments → copy the /exec URL
+          </div>
+        </div>
       </div>
 
       <!-- ── TABS MANAGER ───────────────────────────────── -->
@@ -839,126 +890,145 @@ let mainFolderLevel=0,mainSelectedSubsection=null,mainActiveTab='input';
 let _preserveFolderState=false;
 
 // ==================== STORAGE ====================
-function loadFromStorage(){
-  const saved=localStorage.getItem('sntDataV8');
-  if(saved){
-    const parsed=JSON.parse(saved);
-    parsed.forEach(item=>{
-      const sec=sections.find(s=>s.id===item.section);
-      if(sec&&!sec.flat&&!sec.items.find(i=>i.id===item.id))sec.items.push(item);
-      else if(sec&&sec.flat&&!sec.items)sec.items=[];
-      else if(sec&&sec.flat&&!sec.items.find(i=>i.id===item.id))sec.items.push(item);
+// Only two things ever go in localStorage: the Script URL and the tabs URL.
+// ALL data (items + users) lives in Google Sheets / Drive only.
+
+function getScriptUrl(){return localStorage.getItem('sntScriptUrl')||'';}
+function setScriptUrl(url){localStorage.setItem('sntScriptUrl',url.trim());}
+
+// Require a URL — call this before every network op
+function requireUrl(){
+  if(!getScriptUrl())throw new Error('No Script URL set. Open Config → 🔗 Script URL and paste your Apps Script URL.');
+}
+
+// Save all items to Google Drive (called after every change)
+async function saveToStorage(){
+  try{
+    requireUrl();
+    const all=sections.flatMap(s=>s.items||[]);
+    await fetch(getScriptUrl(),{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'sync',data:all})
     });
+  }catch(e){
+    showNotification('Save failed: '+e.message,'error');
   }
 }
-function saveToStorage(){
-  const all=sections.flatMap(s=>s.items||[]);
-  localStorage.setItem('sntDataV8',JSON.stringify(all));
-  syncToGoogleDrive();
-}
-function getScriptUrl(){return 'https://script.google.com/macros/s/AKfycbyj9h_iTASjohcCHhyuk_EQDJdAeCaDdZ1TOp_yoINdvbPyVF6jwvZbKeCiA9SAYQG9/exec';}
+
+// Load all items from Google Drive
 async function loadFromGoogleDrive(){
+  const url=getScriptUrl();
+  if(!url){hideLoading();return false;}
   try{
-    showLoading('Syncing data...');
-    const resp=await fetch(getScriptUrl()+'?action=getData');
+    showLoading('Loading from Google Drive…');
+    const resp=await fetch(url+'?action=getData');
     const result=await resp.json();
     if(result.success&&result.data?.data){
       const cloudData=result.data.data;
-      sections.forEach(s=>{if(s.items)s.items=[];});
+      sections.forEach(s=>{s.items=[];});
       cloudData.forEach(item=>{
         const sec=sections.find(s=>s.id===item.section);
         if(sec&&!sec.items.find(i=>i.id===item.id))sec.items.push(item);
       });
-      localStorage.setItem('sntDataV8',JSON.stringify(cloudData));
       hideLoading();return true;
     }
     hideLoading();return false;
   }catch(e){hideLoading();return false;}
 }
+
 async function manualSync(){
+  if(!getScriptUrl()){showNotification('No Script URL set — go to Config → 🔗 Script URL','error');return;}
   const loaded=await loadFromGoogleDrive();
-  if(loaded){renderTabs();loadSection(currentSectionIndex,true);showNotification('Synced from cloud!','success');}
-  else showNotification('Using local data','info');
+  if(loaded){renderTabs();loadSection(currentSectionIndex,true);showNotification('Synced from Google Drive!','success');}
+  else showNotification('Sync failed — check Script URL','error');
 }
-async function syncToGoogleDrive(){
+
+async function syncToGoogleDrive(){await saveToStorage();}
+
+async function sendNotificationToAll(action,data){
+  const url=getScriptUrl();
+  if(!url)return;
   try{
-    const all=sections.flatMap(s=>s.items||[]);
-    await fetch(getScriptUrl(),{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'sync',data:all})});
+    await fetch(url,{method:'POST',mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action,...data})});
   }catch(e){}
 }
-async function sendNotificationToAll(action,data){
-  try{await fetch(getScriptUrl(),{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...data})});}catch(e){}
-}
 
-// ==================== USER STORE (Google Sheets backed) ====================
-const DEFAULT_USERS = [
+// ==================== USER STORE (Google Sheets only) ====================
+const DEFAULT_USERS=[
   {username:'sillahkanuseries@gmail.com',password:'admin2',name:'admin',role:'admin'}
 ];
-function getUsersScriptUrl(){return localStorage.getItem('sntUsersScriptUrl')||'';}
-function setUsersScriptUrl(url){localStorage.setItem('sntUsersScriptUrl',url.trim());}
 
-// Local cache helpers
-function getCachedUsers(){
-  try{const s=localStorage.getItem('sntUsersV1');if(s)return JSON.parse(s);}catch(e){}
-  const d=DEFAULT_USERS.map(u=>({...u}));
-  localStorage.setItem('sntUsersV1',JSON.stringify(d));
-  return d;
-}
-function setCachedUsers(users){localStorage.setItem('sntUsersV1',JSON.stringify(users));}
-
-// Fetch users from Google Sheets — falls back to cache if unavailable
+// Always reads from Sheets — no local fallback
 async function fetchUsers(){
-  const url=getUsersScriptUrl();
-  if(!url)return getCachedUsers();
+  const url=getScriptUrl();
+  if(!url){
+    // No URL yet: allow only the default admin so the app isn't bricked on first setup
+    return DEFAULT_USERS;
+  }
   try{
     const resp=await fetch(url+'?action=getUsers');
     const result=await resp.json();
-    if(result.success&&Array.isArray(result.users)){
-      setCachedUsers(result.users);
+    if(result.success&&Array.isArray(result.users)&&result.users.length>0){
       return result.users;
     }
-  }catch(e){}
-  return getCachedUsers();
+    // Sheet is empty — let admin still log in to seed it
+    return DEFAULT_USERS;
+  }catch(e){
+    // Network error — allow default admin only so admin can fix config
+    return DEFAULT_USERS;
+  }
 }
 
-// Push full users array to Google Sheets (fire-and-forget, cache always updated first)
+// Write full users array to Sheets — always
 async function pushUsers(users){
-  setCachedUsers(users);
-  const url=getUsersScriptUrl();
-  if(!url)return;
-  try{
-    await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'setUsers',users})});
-  }catch(e){}
+  requireUrl();
+  const resp=await fetch(getScriptUrl(),{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'setUsers',users})
+  });
+  const result=await resp.json();
+  if(!result.success)throw new Error(result.error||'Failed to save users');
 }
 
-// Add a single user (used by signup — avoids race conditions by fetching fresh first)
+// Signup: fetch fresh → check duplicate → push back
 async function remoteAddUser(newUser){
+  requireUrl();
   const users=await fetchUsers();
   if(users.find(u=>u.username.toLowerCase()===newUser.username.toLowerCase()))
-    throw new Error('Username already exists');
+    throw new Error('Email already registered');
   users.push(newUser);
   await pushUsers(users);
-  return users;
 }
 
-// Seed defaults to Sheets if empty (called once by admin)
+// Seed admin to empty sheet
 async function seedDefaultUsers(){
-  const url=getUsersScriptUrl();
-  if(!url){showNotification('Set Users Script URL first','error');return;}
-  showLoading('Seeding default users to Sheets...');
+  const url=getScriptUrl();
+  if(!url){showNotification('Set Script URL first in Config','error');return;}
+  showLoading('Seeding admin user to Sheets…');
   try{
     const resp=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:'seedUsers',users:DEFAULT_USERS})});
     const result=await resp.json();
     hideLoading();
     if(result.success){
-      setCachedUsers(DEFAULT_USERS);
       renderUsersTable();
-      showNotification('Default users seeded to Google Sheets','success');
-    }else{showNotification('Seed failed: '+(result.error||'unknown'),'error');}
+      showNotification('Admin seeded to Google Sheets ✓','success');
+    }else{
+      showNotification('Seed failed: '+(result.error||'unknown'),'error');
+    }
   }catch(e){hideLoading();showNotification('Error: '+e.message,'error');}
 }
+
+// Legacy stubs — no-ops, kept so nothing crashes
+function loadFromStorage(){}
+function getCachedUsers(){return DEFAULT_USERS;}
+function setCachedUsers(){}
+function getUsersScriptUrl(){return getScriptUrl();}
+function setUsersScriptUrl(url){setScriptUrl(url);}
 
 // ==================== AUTH ====================
 const EYE_OPEN=`<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
@@ -1030,10 +1100,10 @@ function showApp(){
     document.getElementById('configBtn').style.display='flex';
     document.getElementById('usersBtn').style.display='flex';
   }
-  loadFromGoogleDrive().then(loaded=>{
-    if(!loaded)loadFromStorage();
-    autoLoadFoldersUrl().finally(()=>{renderTabs();loadSection(0);});
-  }).catch(()=>{loadFromStorage();autoLoadFoldersUrl().finally(()=>{renderTabs();loadSection(0);});});
+  // Load data from Google Drive then apply tabs URL
+  loadFromGoogleDrive()
+    .then(()=>autoLoadFoldersUrl())
+    .finally(()=>{renderTabs();loadSection(0);});
 }
 function logout(){
   currentUser=null;userRole='user';
@@ -1775,23 +1845,75 @@ function confirmDelete(){
 
 // ==================== CONFIG MODAL ====================
 function openConfigModal(){
-  switchConfigTab('tabs');
+  switchConfigTab('script');
   document.getElementById('configModal').classList.add('active');
 }
 function closeConfigModal(){document.getElementById('configModal').classList.remove('active');}
 
 function switchConfigTab(tab){
-  ['tabs','json','export'].forEach(t=>{
+  ['script','tabs','json','export'].forEach(t=>{
     const btn=document.getElementById('ctab'+t.charAt(0).toUpperCase()+t.slice(1));
     const panel=document.getElementById('configTab'+t.charAt(0).toUpperCase()+t.slice(1));
     if(btn)btn.classList.toggle('active',t===tab);
     if(panel)panel.style.display=t===tab?'block':'none';
   });
   document.getElementById('applyConfigBtn').style.display=tab==='json'?'flex':'none';
+  if(tab==='script'){
+    document.getElementById('masterScriptUrl').value=getScriptUrl();
+    renderScriptUrlStatus();
+  }
   if(tab==='tabs'){renderTabsSummary();document.getElementById('tabsGithubUrl').value=localStorage.getItem('sntFoldersUrl')||'';}
   if(tab==='json'){
     const cfg={sections:sections.filter(s=>s.id!=='all').map(s=>({id:s.id,name:s.name,icon:s.icon,description:s.description,flat:!!s.flat,subsections:s.subsections||[]}))};
     document.getElementById('configJsonEditor').value=JSON.stringify(cfg,null,2);
+  }
+}
+
+function renderScriptUrlStatus(){
+  const url=getScriptUrl();
+  const el=document.getElementById('scriptUrlStatus');
+  if(!el)return;
+  if(url){
+    el.innerHTML=`<span style="color:var(--success);">✓ URL saved — <code style="font-size:.78rem;">${url.slice(0,60)}…</code></span>`;
+  }else{
+    el.innerHTML=`<span style="color:var(--danger);">✗ No URL set — data is saving locally only</span>`;
+  }
+}
+async function saveMasterScriptUrl(){
+  const url=document.getElementById('masterScriptUrl').value.trim();
+  setScriptUrl(url);
+  renderScriptUrlStatus();
+  const banner=document.getElementById('noUrlBanner');
+  if(banner)banner.style.display='none';
+  if(url){
+    showNotification('Script URL saved — testing connection…','info');
+    await testScriptConnection();
+  }else{
+    showNotification('URL cleared — using local storage only','info');
+  }
+}
+async function testScriptConnection(){
+  const url=getScriptUrl();
+  const el=document.getElementById('scriptUrlStatus');
+  if(!url){
+    if(el)el.innerHTML=`<span style="color:var(--danger);">✗ No URL set</span>`;
+    showNotification('No Script URL set','error');
+    return;
+  }
+  if(el)el.innerHTML=`<span style="color:var(--info);">⏳ Testing connection…</span>`;
+  try{
+    const resp=await fetch(url+'?action=test');
+    const result=await resp.json();
+    if(result.success){
+      if(el)el.innerHTML=`<span style="color:var(--success);">✓ Connected! ${result.message||''} — ${new Date().toLocaleTimeString()}</span>`;
+      showNotification('Connection successful!','success');
+    }else{
+      if(el)el.innerHTML=`<span style="color:var(--danger);">✗ Script error: ${result.error||result.message}</span>`;
+      showNotification('Script returned an error','error');
+    }
+  }catch(e){
+    if(el)el.innerHTML=`<span style="color:var(--danger);">✗ Could not reach script: ${e.message}</span>`;
+    showNotification('Could not reach script — check URL and deployment','error');
   }
 }
 
@@ -2143,9 +2265,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
     dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files.length)handleFileSelect({files:e.dataTransfer.files});});
   }
-  // Migrate old storage key
-  const oldData=localStorage.getItem('sntDataV7');
-  if(oldData&&!localStorage.getItem('sntDataV8')){localStorage.setItem('sntDataV8',oldData);}
+  // Only localStorage keys allowed: sntScriptUrl (URL config) and sntFoldersUrl (tabs URL)
+  // Migrate any old users script URL to unified key
+  const oldUrl=localStorage.getItem('sntUsersScriptUrl');
+  if(oldUrl&&!localStorage.getItem('sntScriptUrl'))setScriptUrl(oldUrl);
+  // Warn if no script URL
+  if(!getScriptUrl()){
+    const warn=document.createElement('div');
+    warn.id='noUrlBanner';
+    warn.style.cssText='background:#fff3cd;color:#856404;padding:8px 20px;font-size:.82rem;font-weight:600;text-align:center;border-bottom:2px solid var(--accent);';
+    warn.innerHTML='⚠️ No Script URL set — data is saving locally only. <a href="#" onclick="openConfigModal();return false;" style="color:var(--primary);font-weight:700;">Set it now in Config →</a>';
+    document.body.insertBefore(warn,document.getElementById('appContainer'));
+  }
 });
 </script>
 </body>
