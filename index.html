@@ -910,11 +910,6 @@ async function remoteAddUser(newUser){
     throw new Error('Email already registered');
   users.push(newUser);
   await pushUsers(users);
-  // Wait briefly then re-fetch to confirm GAS wrote it
-  await new Promise(r=>setTimeout(r,1800));
-  const confirmed=await fetchUsers();
-  if(!confirmed.find(u=>u.username.toLowerCase()===newUser.username.toLowerCase()))
-    throw new Error('Account may not have saved — please try signing in. If login fails, try registering again.');
 }
 
 // Seed admin to empty sheet
