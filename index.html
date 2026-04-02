@@ -322,11 +322,13 @@
     .chat-msg-wrap.mine{align-items:flex-end;}
     .chat-msg-row{display:flex;align-items:flex-end;gap:8px;}
     .chat-msg-wrap.mine .chat-msg-row{flex-direction:row-reverse;}
-    .chat-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0;user-select:none;}
-    .chat-av.sm{width:24px;height:24px;font-size:.6rem;}
-    .chat-bwrap{display:flex;flex-direction:column;max-width:80%;position:relative;}
+    .chat-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:.72rem;font-weight:700;color:#fff;flex-shrink:0;user-select:none;}
+    .chat-av.sm{width:26px;height:26px;font-size:.62rem;}
+    .chat-bwrap{display:flex;flex-direction:column;max-width:82%;position:relative;}
     .chat-msg-wrap.mine .chat-bwrap{align-items:flex-end;}
-    .chat-meta-row{display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:.7rem;color:var(--gray-600);flex-wrap:wrap;}
+    /* WhatsApp-style: colored sender name above bubble */
+    .chat-sender-name{font-weight:700;font-size:.8rem;margin-bottom:3px;padding:0 2px;}
+    .chat-meta-row{display:flex;align-items:center;gap:5px;margin-bottom:1px;font-size:.7rem;color:var(--gray-600);flex-wrap:wrap;}
     .chat-meta-row.right{justify-content:flex-end;}
     .chat-author-nm{font-weight:700;color:var(--gray-800);}
     .chat-rtag{font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:3px;text-transform:uppercase;}
@@ -349,13 +351,23 @@
     .chat-rxn-btn.mine{background:#e0edff;border-color:var(--primary);color:var(--primary);font-weight:700;}
 
     /* action bar on hover */
-    .chat-act-bar{display:none;align-items:center;gap:2px;background:#fff;border:1px solid var(--gray-200);border-radius:8px;padding:3px 5px;box-shadow:0 2px 10px rgba(0,0,0,.14);position:absolute;right:0;top:-36px;z-index:10;white-space:nowrap;}
+    /* action bar — fades in after 0.35s hover delay, no instant flash */
+    .chat-act-bar{opacity:0;visibility:hidden;align-items:center;gap:2px;background:#fff;border:1px solid var(--gray-200);border-radius:8px;padding:3px 5px;box-shadow:0 2px 10px rgba(0,0,0,.14);position:absolute;right:0;top:-38px;z-index:10;white-space:nowrap;display:flex;transition:opacity .2s ease, visibility 0s ease .2s;}
     .chat-msg-wrap.mine .chat-act-bar{right:auto;left:0;}
-    .chat-bwrap:hover .chat-act-bar{display:flex;}
-    .chat-act-btn{background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:5px;font-size:.85rem;color:var(--gray-600);transition:background .15s;}
+    .chat-bwrap:hover .chat-act-bar{opacity:1;visibility:visible;transition:opacity .2s ease .35s, visibility 0s ease .35s;}
+    .chat-act-btn{background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:5px;font-size:.85rem;color:var(--gray-600);transition:background .2s;}
     .chat-act-btn:hover{background:var(--gray-100);}
     .chat-act-btn.del:hover{background:#fee2e2;color:var(--danger);}
     .chat-act-sep{width:1px;height:16px;background:var(--gray-200);margin:0 2px;}
+    /* reactions — slower, smoother */
+    .chat-rxns{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+    .chat-rxn-btn{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:2px 8px;font-size:.8rem;cursor:pointer;transition:all .3s ease;display:flex;align-items:center;gap:3px;color:var(--gray-700);}
+    .chat-rxn-btn:hover{border-color:var(--primary);background:#f0f5ff;transform:scale(1.08);}
+    .chat-rxn-btn.mine{background:#e0edff;border-color:var(--primary);color:var(--primary);font-weight:700;}
+    /* image in chat */
+    .chat-img{max-width:220px;max-height:200px;border-radius:10px;display:block;cursor:pointer;margin-top:4px;object-fit:cover;}
+    .chat-img-btn{width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;background:var(--gray-100);color:var(--gray-600);font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
+    .chat-img-btn:hover{background:#e0e7ff;color:var(--primary);}
 
     /* replies thread */
     .chat-replies{display:flex;flex-direction:column;gap:4px;margin-top:4px;margin-left:40px;}
@@ -841,6 +853,10 @@
         <button class="chat-reply-cancel" onclick="cancelChatReply()">✕</button>
       </div>
       <div class="chat-input-row">
+        <label class="chat-img-btn" title="Send image" style="margin:0;">
+          📷
+          <input type="file" id="chatImageInput" accept="image/*" style="display:none" onchange="handleChatImageSelect(this)">
+        </label>
         <div id="chatInput" class="chat-input-box" contenteditable="true" placeholder="Message your team... (Enter to send)" onkeydown="onChatKeydown(event)"></div>
         <div class="emoji-picker-wrap">
           <button class="chat-emoji-toggle" id="chatEmojiToggle" onclick="toggleEmojiPicker()" title="Emoji">😊</button>
@@ -1622,17 +1638,17 @@ function buildChatMsgHtml(msg){
   const rxns=buildRxnHtml(msg.reactions||{},msg.id,false,null);
   const acts=buildActHtml(msg.id,msg.author,mine,canEdit,canDel,false,null);
   const repliesHtml=(msg.replies||[]).map(r=>buildChatRepHtml(msg.id,r)).join('');
+  const imgHtml=msg.imageData?`<img class="chat-img" src="${msg.imageData}" onclick="viewChatImage('${msg.id}')" alt="Image">`:'' ;
   return `<div class="chat-msg-wrap ${mine?'mine':''}" id="cmsg-${msg.id}">
     <div class="chat-msg-row">
-      <div class="chat-av" style="background:${color}">${av}</div>
+      <div class="chat-av" style="background:${color}" title="${escHtml(msg.author)}">${av}</div>
       <div class="chat-bwrap">
-        <div class="chat-meta-row ${mine?'right':''}">
-          ${!mine?`<span class="chat-author-nm">${escHtml(msg.author)}</span><span class="chat-rtag ${msg.role||'user'}">${msg.role||'user'}</span>`:''}
-          <span class="chat-ts">${ts}</span>${msg.edited?'<span class="chat-edited-lbl">(edited)</span>':''}
-        </div>
+        ${!mine?`<div class="chat-sender-name" style="color:${color};">${escHtml(msg.author)} <span class="chat-rtag ${msg.role||'user'}">${msg.role||'user'}</span></div>`:''}
         <div class="chat-bubble ${mine?'mine':''}">
           ${msg.replyPreview?`<div class="chat-rp-preview">↩ <strong>${escHtml(msg.replyAuthor||'')}</strong>: ${escHtml(msg.replyPreview)}</div>`:''}
-          <div id="ctxt-${msg.id}">${msg.text}</div>
+          <div id="ctxt-${msg.id}">${msg.text||''}</div>
+          ${imgHtml}
+          <div style="font-size:.65rem;opacity:.7;margin-top:4px;text-align:right;">${ts}${msg.edited?' · edited':''}</div>
         </div>
         ${rxns?`<div class="chat-rxns">${rxns}</div>`:''}
         <div class="chat-act-bar">${acts}</div>
@@ -1648,11 +1664,12 @@ function buildChatRepHtml(parentId,r){
   const canDel=mine||userRole==='admin';
   const rxns=buildRxnHtml(r.reactions||{},parentId,true,r.id);
   const acts=buildActHtml(parentId,r.author,mine,mine,canDel,true,r.id);
+  const imgHtml=r.imageData?`<img class="chat-img" src="${r.imageData}" alt="Image" style="max-width:180px;">`:'' ;
   return `<div class="chat-rep-row" id="crep-${r.id}">
-    <div class="chat-av sm" style="background:${color}">${av}</div>
+    <div class="chat-av sm" style="background:${color}" title="${escHtml(r.author)}">${av}</div>
     <div class="chat-bwrap">
-      <div class="chat-meta-row"><span class="chat-author-nm">${escHtml(r.author)}</span><span class="chat-ts">${ts}</span>${r.edited?'<span class="chat-edited-lbl">(edited)</span>':''}</div>
-      <div class="chat-bubble rep ${mine?'mine':''}" id="ctxt-${r.id}">${r.text}</div>
+      <div class="chat-sender-name" style="color:${color};font-size:.75rem;">${escHtml(r.author)}</div>
+      <div class="chat-bubble rep ${mine?'mine':''}" id="ctxt-${r.id}">${r.text||''}${imgHtml}<div style="font-size:.62rem;opacity:.7;margin-top:3px;text-align:right;">${ts}${r.edited?' · edited':''}</div></div>
       ${rxns?`<div class="chat-rxns">${rxns}</div>`:''}
       <div class="chat-act-bar">${acts}</div>
     </div>
@@ -1691,6 +1708,34 @@ function sendChatMessage(){
 }
 
 async function saveChatToGAS(){await postToScript({action:'saveChatMessages',messages:chatMessages});}
+
+// ── Image upload ──────────────────────────────────────────
+function handleChatImageSelect(input){
+  const file=input.files?.[0];if(!file)return;
+  if(file.size>3*1024*1024){showNotification('Image too large (max 3 MB)','error');input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const imageData=e.target.result;
+    if(chatReplyTo){
+      const parent=chatMessages.find(m=>m.id===chatReplyTo.id);
+      if(parent){if(!parent.replies)parent.replies=[];parent.replies.push({id:'rep-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),author:currentUser,role:userRole,text:'',imageData,time:new Date().toISOString(),edited:false,reactions:{}});}
+    }else{
+      chatMessages.push({id:'msg-'+Date.now()+'-'+Math.random().toString(36).slice(2,5),author:currentUser,role:userRole,text:'',imageData,time:new Date().toISOString(),edited:false,reactions:{},replies:[],replyPreview:chatReplyTo?.preview||null,replyAuthor:chatReplyTo?.author||null});
+    }
+    cancelChatReply();renderChat();scrollChatToBottom();saveChatToGAS();
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+}
+
+function viewChatImage(msgId){
+  const msg=chatMessages.find(m=>m.id===msgId)||chatMessages.flatMap(m=>m.replies||[]).find(r=>r.id===msgId);
+  if(!msg||!msg.imageData)return;
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out;';
+  const img=document.createElement('img');img.src=msg.imageData;img.style.cssText='max-width:92vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6);';
+  overlay.appendChild(img);overlay.onclick=()=>document.body.removeChild(overlay);document.body.appendChild(overlay);
+}
 
 function startChatReply(msgId,author){
   const msg=chatMessages.find(m=>m.id===msgId);
