@@ -1513,12 +1513,12 @@ function renderTaskTable(grid){
   <!-- toolbar row -->
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <div style="background:#fff8e1;color:#f57f17;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid #ffe082;">⏳ ${counts.pending||0} Pending</div>
-      <div style="background:#e3f2fd;color:#0277bd;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid #90caf9;">● ${counts['in-progress']||0} In Progress</div>
-      <div style="background:#e8f5e9;color:#2e7d32;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid #a5d6a7;">✓ ${counts.completed||0} Completed</div>
-      <div style="background:#fce4ec;color:#c62828;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid #f48fb1;">! ${counts.overdue||0} Overdue</div>
+      <div style="background:#fff8e1;color:#f57f17;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid #ffe082;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${counts.pending||0} Pending</div>
+      <div style="background:#e3f2fd;color:#0277bd;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid #90caf9;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> ${counts['in-progress']||0} In Progress</div>
+      <div style="background:#e8f5e9;color:#2e7d32;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid #a5d6a7;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${counts.completed||0} Completed</div>
+      <div style="background:#fce4ec;color:#c62828;padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700;border:1px solid #f48fb1;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> ${counts.overdue||0} Overdue</div>
     </div>
-    <button onclick="openAddModal()" style="background:var(--accent);color:#000;border:none;padding:9px 20px;border-radius:7px;font-family:'Oswald',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;text-transform:uppercase;">+ Add Task</button>
+    <button onclick="openAddModal()" style="background:var(--accent);color:#000;border:none;padding:9px 20px;border-radius:7px;font-family:'Oswald',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;text-transform:uppercase;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Task</button>
   </div>
 
   <!-- full-width table -->
@@ -1542,7 +1542,7 @@ function renderTaskTable(grid){
         <th style="padding:13px 14px;text-align:left;font-family:'Oswald',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Assigned To</th>
         <th style="padding:13px 12px;text-align:left;font-family:'Oswald',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Deadline</th>
         <th style="padding:13px 12px;text-align:center;font-family:'Oswald',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Status</th>
-        <th style="padding:13px 12px;text-align:center;font-family:'Oswald',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">💬</th>
+        <th style="padding:13px 12px;text-align:center;font-family:'Oswald',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></th>
         <th style="padding:13px 12px;text-align:center;font-family:'Oswald',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Actions</th>
       </tr>
     </thead>
@@ -1550,9 +1550,9 @@ function renderTaskTable(grid){
 
   if(!currentItems.length){
     html+=`<tr><td colspan="8" style="padding:50px;text-align:center;color:var(--gray-400);">
-      <div style="font-size:2.5rem;margin-bottom:10px;">📋</div>
+      <div style="width:56px;height:56px;background:#e8f0fe;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#004080" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
       <div style="font-family:'Oswald',sans-serif;font-size:1rem;color:var(--primary);margin-bottom:8px;">No tasks yet</div>
-      <button onclick="openAddModal()" style="background:var(--accent);color:#000;border:none;padding:9px 20px;border-radius:7px;font-family:'Oswald',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;">+ Add First Task</button>
+      <button onclick="openAddModal()" style="background:var(--accent);color:#000;border:none;padding:9px 20px;border-radius:7px;font-family:'Oswald',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add First Task</button>
     </td></tr>`;
   }
 
@@ -1600,7 +1600,7 @@ function renderTaskTable(grid){
                   ${item.assigneeEmail?`<div style="font-size:.68rem;color:var(--gray-400);">${escHtml(item.assigneeEmail)}</div>`:''}
                 </div>
               </div>`
-            :`<span style="color:var(--primary);font-size:.78rem;font-weight:600;border:1.5px dashed var(--primary);padding:3px 9px;border-radius:5px;display:inline-block;">+ Assign</span>`}
+            :`<span style="color:var(--primary);font-size:.78rem;font-weight:600;border:1.5px dashed var(--primary);padding:4px 9px;border-radius:5px;display:inline-flex;align-items:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Assign</span>`}
         </div>
         <div id="assign-edit-${item.id}" style="display:none;">
           <select onchange="saveInlineAssign('${item.id}',this.value)" onblur="cancelInlineAssign('${item.id}')"
@@ -1614,7 +1614,7 @@ function renderTaskTable(grid){
       <td style="padding:12px;">
         <div id="due-display-${item.id}" onclick="${canEdit?`inlineEditDue('${item.id}')`:''}" style="cursor:${canEdit?'pointer':'default'};">
           <span style="font-weight:600;font-size:.82rem;color:${duePast?'var(--danger)':'var(--gray-700)'};">${dueFmt}</span>
-          ${duePast?`<div style="font-size:.68rem;color:var(--danger);font-weight:700;">⚠ Overdue</div>`:''}
+          ${duePast?`<div style="font-size:.68rem;color:var(--danger);font-weight:700;display:flex;align-items:center;gap:3px;margin-top:2px;"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Overdue</div>`:''}
         </div>
         <div id="due-edit-${item.id}" style="display:none;">
           <input type="date" value="${item.dueDate||''}"
@@ -1638,16 +1638,16 @@ function renderTaskTable(grid){
       <!-- Comments -->
       <td style="padding:12px;text-align:center;">
         ${commentCount>0
-          ?`<button onclick="openPreviewById('${item.id}',true)" style="background:#e0e7ff;color:var(--primary);border:none;border-radius:10px;padding:4px 10px;font-size:.75rem;font-weight:700;cursor:pointer;">💬 ${commentCount}</button>`
-          :`<button onclick="openPreviewById('${item.id}',true)" style="background:none;border:1px dashed var(--gray-300);color:var(--gray-400);border-radius:10px;padding:4px 8px;font-size:.75rem;cursor:pointer;">+</button>`}
+          ?`<button onclick="openPreviewById('${item.id}',true)" style="background:#e0e7ff;color:var(--primary);border:none;border-radius:10px;padding:4px 10px;font-size:.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${commentCount}</button>`
+          :`<button onclick="openPreviewById('${item.id}',true)" style="background:none;border:1px dashed var(--gray-300);color:var(--gray-400);border-radius:10px;padding:4px 10px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:3px;"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>+</button>`}
       </td>
 
       <!-- Actions -->
       <td style="padding:12px;text-align:center;">
         <div style="display:flex;gap:4px;justify-content:center;">
-          <button onclick="openPreviewById('${item.id}',false)" title="View details" style="background:#e8f0fe;color:var(--primary);border:none;border-radius:6px;padding:6px 10px;font-size:.78rem;font-weight:600;cursor:pointer;">View</button>
-          ${canComplete&&!isCompleted?`<button onclick="openCompleteModalById('${item.id}')" title="Mark done" style="background:#e8f5e9;color:#2e7d32;border:none;border-radius:6px;padding:6px 10px;font-size:.78rem;font-weight:600;cursor:pointer;">✓ Done</button>`:''}
-          ${canDelete?`<button onclick="openDeleteModalById('${item.id}')" title="Delete" style="background:#fce4ec;color:#c62828;border:none;border-radius:6px;padding:6px 9px;font-size:.78rem;cursor:pointer;">🗑</button>`:''}
+          <button onclick="openPreviewById('${item.id}',false)" title="View details" style="background:#e8f0fe;color:var(--primary);border:none;border-radius:6px;padding:6px 10px;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button>
+          ${canComplete&&!isCompleted?`<button onclick="openCompleteModalById('${item.id}')" title="Mark done" style="background:#e8f5e9;color:#2e7d32;border:none;border-radius:6px;padding:6px 10px;font-size:.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Done</button>`:''} 
+          ${canDelete?`<button onclick="openDeleteModalById('${item.id}')" title="Delete" style="background:#fce4ec;color:#c62828;border:none;border-radius:6px;padding:6px 9px;cursor:pointer;display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>`:''}
         </div>
       </td>
     </tr>`;
