@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SNT Data Assembly - Dropbox Style Folder Sharing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:#004080;--primary-dark:#003060;--primary-light:#0060a0;
+      --accent:#ffc107;--accent-dark:#e0a800;
+      --success:#28a745;--danger:#dc3545;--warning:#fd7e14;
+      --info:#17a2b8;--purple:#6f42c1;
+      --gray-100:#f0f4f8;--gray-200:#e2e8f0;--gray-300:#cbd5e1;
+      --gray-400:#94a3b8;--gray-600:#475569;--gray-800:#1e293b;
+      --color-input:#0077b6;--color-code:#6f42c1;--color-output:#28a745;
+      --pure-white:#ffffff;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Source Sans Pro',Arial,sans-serif;background:var(--pure-white);min-height:100vh;}
+
+    /* ===== LOGIN SCREEN ===== */
+    .login-screen{position:fixed;inset:0;background:linear-gradient(160deg,#003060 0%,#004080 60%,#0060a0 100%);display:flex;align-items:center;justify-content:center;z-index:1000;overflow-y:auto;padding:20px 0;}
+    .login-screen.hidden{display:none;}
+    .login-container{background:var(--pure-white);border-radius:12px;padding:35px;width:100%;max-width:420px;box-shadow:0 25px 80px rgba(0,0,0,.5);}
+    .login-logo{display:flex;align-items:center;justify-content:center;gap:15px;margin-bottom:25px;}
+    .login-logo img{width:65px;height:65px;border-radius:6px;object-fit:contain;border:2px solid var(--gray-200);}
+    .login-logo-text h1{font-family:'Oswald',sans-serif;font-size:1.3rem;color:var(--primary);}
+    .login-logo-text p{font-size:.8rem;color:var(--gray-600);}
+    .login-form .form-group{margin-bottom:18px;}
+    .login-form label{display:block;font-weight:600;margin-bottom:6px;color:var(--gray-800);font-size:.9rem;}
+    .login-form input{width:100%;padding:12px 14px;border:2px solid var(--gray-200);border-radius:6px;font-size:1rem;font-family:inherit;background:var(--pure-white);}
+    .login-form input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,64,128,.1);}
+    .login-btn{width:100%;padding:12px;background:var(--primary);color:var(--pure-white);border:none;border-radius:6px;font-size:1rem;font-weight:600;font-family:'Oswald',sans-serif;text-transform:uppercase;cursor:pointer;}
+    .login-btn:hover{background:var(--primary-dark);}
+    .login-error{background:#fee2e2;color:#dc2626;padding:10px;border-radius:6px;margin-bottom:15px;text-align:center;font-weight:600;display:none;font-size:.9rem;}
+    .login-error.show{display:block;}
+    .pw-wrap{position:relative;}
+    .pw-wrap input{padding-right:42px!important;}
+    .pw-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-400);padding:4px;display:flex;align-items:center;}
+    .pw-eye:hover{color:var(--primary);}
+
+    /* ===== APP ===== */
+    .app-container{display:none;}
+    .app-container.active{display:block;}
+
+    /* ===== HEADER ===== */
+    .header{background:var(--primary);padding:10px 25px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(0,0,0,.3);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:12px;}
+    .header-brand{display:flex;align-items:center;gap:10px;color:var(--pure-white);}
+    .logo-box{background:var(--pure-white);border-radius:4px;padding:3px;}
+    .logo-box img{width:45px;height:45px;border-radius:2px;object-fit:contain;}
+    .header-text h1{font-family:'Oswald',sans-serif;font-size:1.2rem;font-weight:700;}
+    .header-text p{font-size:.7rem;opacity:.9;}
+    .search-container{display:flex;flex:1;max-width:300px;min-width:180px;}
+    .search-box{flex:1;position:relative;}
+    .search-input{width:100%;padding:8px 38px 8px 14px;border:2px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(255,255,255,.1);color:var(--pure-white);font-family:inherit;font-size:.9rem;outline:none;}
+    .search-input::placeholder{color:rgba(255,255,255,.6);}
+    .search-input:focus{background:rgba(255,255,255,.2);border-color:var(--accent);}
+    .search-btn{position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--accent);border:none;border-radius:4px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+    .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .user-badge{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);padding:6px 12px;border-radius:6px;color:var(--pure-white);font-weight:600;font-size:.85rem;}
+    .user-badge.admin{background:rgba(255,193,7,.3);}
+    .user-badge.supervisor{background:rgba(111,66,193,.4);}
+    .role-label{font-size:.7rem;opacity:.8;text-transform:uppercase;}
+
+    /* ===== BUTTONS ===== */
+    .btn{padding:8px 14px;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:'Oswald',sans-serif;text-transform:uppercase;display:flex;align-items:center;gap:5px;border:2px solid transparent;transition:all .3s;}
+    .btn-outline{background:transparent;border:2px solid rgba(255,255,255,.5);color:var(--pure-white);}
+    .btn-outline:hover{background:rgba(255,255,255,.15);border-color:var(--pure-white);}
+    .btn-gold{background:var(--accent);border-color:var(--accent);color:#000;}
+    .btn-gold:hover{background:var(--accent-dark);}
+    .btn-danger{background:var(--danger);border-color:var(--danger);color:var(--pure-white);}
+    .btn-success{background:var(--success);border-color:var(--success);color:var(--pure-white);}
+    .btn-success:hover{background:#218838;}
+    .btn-info{background:var(--info);border-color:var(--info);color:var(--pure-white);}
+    .btn-purple{background:var(--purple);border-color:var(--purple);color:var(--pure-white);}
+    .btn-primary{background:var(--primary);border-color:var(--primary);color:var(--pure-white);}
+    .btn-config{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);color:var(--pure-white);}
+
+    /* ===== MAIN ===== */
+    .main{padding:18px 20px;min-height:calc(100vh - 80px);background:var(--pure-white);}
+
+    /* ===== SECTION NAV ===== */
+    .section-nav{display:flex;align-items:center;gap:8px;margin-bottom:18px;background:var(--pure-white);padding:8px 12px;border-radius:8px;border:2px solid var(--primary);box-shadow:0 2px 8px rgba(0,64,128,.1);}
+    .section-nav-btn{width:32px;height:32px;border-radius:6px;background:var(--primary);border:2px solid var(--accent);color:var(--pure-white);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:bold;}
+    .section-nav-btn:hover:not(:disabled){background:var(--primary-light);}
+    .section-tabs{display:flex;gap:5px;flex:1;overflow-x:auto;padding:4px 0;scrollbar-width:none;}
+    .section-tabs::-webkit-scrollbar{display:none;}
+    .section-tab{padding:6px 12px;background:#f0f5ff;border:2px solid transparent;border-radius:6px;color:var(--primary);font-family:'Oswald',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:all .3s;}
+    .section-tab:hover{background:#dce9ff;}
+    .section-tab.active{background:var(--accent);color:#000;border-color:var(--accent);}
+    .tab-count{background:rgba(0,0,0,.2);padding:1px 5px;border-radius:4px;font-size:.65rem;}
+
+    /* ===== FOLDER MANAGEMENT ===== */
+    .folder-manager{background:var(--gray-100);border-radius:10px;padding:16px;margin-bottom:20px;}
+    .folder-breadcrumb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;padding:10px;background:white;border-radius:8px;}
+    .breadcrumb-item{display:flex;align-items:center;gap:4px;padding:4px 8px;background:var(--gray-100);border-radius:6px;cursor:pointer;font-size:.8rem;}
+    .breadcrumb-item:hover{background:var(--gray-200);}
+    .folder-tree{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto;padding:8px;background:white;border-radius:8px;margin-bottom:16px;}
+    .folder-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:6px;cursor:pointer;transition:all .2s;}
+    .folder-item:hover{background:var(--gray-100);}
+    .folder-item.selected{background:#e0e7ff;border-left:3px solid var(--primary);}
+    .folder-name{display:flex;align-items:center;gap:8px;flex:1;}
+    .folder-actions{display:flex;gap:4px;opacity:0;transition:opacity .2s;}
+    .folder-item:hover .folder-actions{opacity:1;}
+    .share-link-box{background:#f0fdf4;border:2px solid var(--success);border-radius:8px;padding:14px;margin-top:16px;}
+    .share-link-box input{width:100%;padding:10px;border:2px solid var(--gray-200);border-radius:6px;font-family:monospace;font-size:.8rem;margin-bottom:8px;}
+    .share-password-set{background:#fef3c7;padding:12px;border-radius:6px;margin-top:10px;}
+
+    /* ===== PUBLIC SHARE VIEW ===== */
+    .public-view{position:fixed;inset:0;background:white;z-index:2000;display:none;overflow-y:auto;}
+    .public-view.active{display:block;}
+    .public-header{background:var(--primary);color:white;padding:20px;text-align:center;}
+    .public-files{max-width:800px;margin:20px auto;padding:20px;}
+    .share-password-prompt{max-width:400px;margin:100px auto;text-align:center;padding:30px;background:var(--gray-100);border-radius:12px;}
+
+    /* ===== MODALS ===== */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:400;display:none;align-items:center;justify-content:center;padding:15px;overflow-y:auto;}
+    .modal-overlay.active{display:flex;}
+    .modal{background:var(--pure-white);border-radius:12px;max-width:700px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+    .modal-header{background:var(--primary);color:var(--pure-white);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0;}
+    .modal-header h2{font-family:'Oswald',sans-serif;font-size:1.1rem;}
+    .modal-close{background:transparent;border:none;color:var(--pure-white);cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:1.2rem;}
+    .modal-body{padding:20px;}
+    .form-group{margin-bottom:14px;}
+    .form-group label{display:block;font-weight:600;margin-bottom:5px;color:var(--gray-800);font-size:.85rem;}
+    .form-group input,.form-group select{width:100%;padding:10px 12px;border:2px solid var(--gray-200);border-radius:6px;font-family:inherit;font-size:.9rem;}
+    .modal-footer{padding:14px 20px;border-top:1px solid var(--gray-200);display:flex;gap:8px;justify-content:flex-end;}
+    .notification{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);padding:12px 24px;border-radius:8px;font-weight:600;z-index:600;opacity:0;pointer-events:none;transition:all .3s;box-shadow:0 5px 20px rgba(0,0,0,.3);}
+    .notification.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    .notification.success{background:#d4edda;color:#155724;}
+    .notification.error{background:#f8d7da;color:#721c24;}
+    .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .3s;}
+    .loading-overlay.active{opacity:1;pointer-events:all;}
+    .loading-spinner{width:40px;height:40px;border:4px solid rgba(255,193,7,.3);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-container">
+    <div class="login-logo">
+      <img src="NMCP.PNG" alt="NMCP">
+      <div class="login-logo-text"><h1>SNT Data Assembly</h1><p>Centralized Data Management</p></div>
+    </div>
+    <div style="display:flex;border-radius:8px;overflow:hidden;border:2px solid var(--gray-200);margin-bottom:22px;">
+      <button id="tabSignIn" onclick="switchAuthTab('signin')" style="flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:.95rem;font-weight:600;border:none;cursor:pointer;background:var(--primary);color:#fff;">Sign In</button>
+      <button id="tabSignUp" onclick="switchAuthTab('signup')" style="flex:1;padding:10px;font-family:'Oswald',sans-serif;font-size:.95rem;font-weight:600;border:none;cursor:pointer;background:#fff;color:var(--gray-600);">Sign Up</button>
+    </div>
+    <div id="panelSignIn">
+      <div class="login-error" id="loginError">Invalid email or password</div>
+      <form class="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group"><label>Email</label><input type="email" id="username" placeholder="your@email.com" required></div>
+        <div class="form-group"><label>Password</label><div class="pw-wrap"><input type="password" id="password" placeholder="Enter password" required><button type="button" class="pw-eye" onclick="togglePw('password',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+        <button type="submit" class="login-btn">Sign In</button>
+      </form>
+    </div>
+    <div id="panelSignUp" style="display:none;">
+      <div class="login-error" id="signupError">Error</div>
+      <form class="login-form" onsubmit="handleSignUp(event)">
+        <div class="form-group"><label>Full Name</label><input type="text" id="suName" required></div>
+        <div class="form-group"><label>Email</label><input type="email" id="suUsername" required></div>
+        <div class="form-group"><label>Password</label><div class="pw-wrap"><input type="password" id="suPassword" required><button type="button" class="pw-eye" onclick="togglePw('suPassword',this)" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+        <button type="submit" class="login-btn" style="background:var(--success);">Create Account</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app-container" id="appContainer">
+  <header class="header">
+    <div class="header-brand"><div class="logo-box"><img src="https://github.com/mohamedsillahkanu/gdp-dashboard-2/raw/6c7463b0d5c3be150aafae695a4bcbbd8aeb1499/ICF-SL.jpg" alt="ICF-SL"></div><div class="header-text"><h1>DATA ASSEMBLY PLATFORM</h1><p>With Dropbox-Style Folder Sharing</p></div></div>
+    <div class="search-container"><div class="search-box"><input type="text" class="search-input" id="searchInput" placeholder="Search..." oninput="handleSearch(this.value)"><button class="search-btn"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button></div></div>
+    <div class="header-actions"><div class="user-badge" id="userBadge"><span id="userDisplay">User</span><span class="role-label" id="roleDisplay">User</span></div><button class="btn btn-outline" onclick="logout()">Logout</button></div>
+  </header>
+  <main class="main">
+    <div class="section-nav"><button class="section-nav-btn" onclick="prevSection()">‹</button><div class="section-tabs" id="sectionTabs"></div><button class="section-nav-btn" onclick="nextSection()">›</button></div>
+    
+    <!-- Folder Manager (Dropbox-style) -->
+    <div class="folder-manager" id="folderManager">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-family:'Oswald',sans-serif;color:var(--primary);">📁 Folder Manager</h3>
+        <div><button class="btn btn-gold" onclick="openCreateFolderModal()" style="padding:6px 12px;font-size:.75rem;">+ New Folder</button></div>
+      </div>
+      <div class="folder-breadcrumb" id="folderBreadcrumb"></div>
+      <div class="folder-tree" id="folderTree"></div>
+      <div id="shareSection" style="display:none;" class="share-link-box">
+        <h4 style="margin-bottom:10px;">🔗 Share this folder</h4>
+        <input type="text" id="shareLinkInput" readonly onclick="this.select()">
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-primary" onclick="copyShareLink()">📋 Copy Link</button>
+          <button class="btn btn-info" onclick="toggleSharePassword()">🔒 Set Password</button>
+        </div>
+        <div id="sharePasswordSection" style="display:none;" class="share-password-set">
+          <input type="password" id="sharePassword" placeholder="Password for this folder">
+          <button class="btn btn-success" onclick="saveSharePassword()" style="margin-top:5px;">Save Password</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section-header"><div class="section-icon" id="sectionIcon"></div><div><div class="section-title" id="sectionTitle">All Items</div><div class="section-subtitle" id="sectionSubtitle"></div></div></div>
+    <div class="items-grid" id="itemsGrid"></div>
+  </main>
+  <footer class="footer"><p><strong>Informatics Consultancy Firm - Sierra Leone (ICF-SL)</strong></p></footer>
+</div>
+
+<!-- Create Folder Modal -->
+<div class="modal-overlay" id="createFolderModal">
+  <div class="modal"><div class="modal-header"><h2>Create New Folder</h2><button class="modal-close" onclick="closeCreateFolderModal()">✕</button></div>
+    <div class="modal-body"><div class="form-group"><label>Folder Name</label><input type="text" id="newFolderName" placeholder="e.g., Q1 Reports"></div>
+    <div class="form-group"><label>Parent Folder</label><select id="parentFolderSelect"></select></div>
+    <div class="form-group"><label>Description (optional)</label><input type="text" id="folderDescription" placeholder="Brief description"></div></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeCreateFolderModal()">Cancel</button><button class="btn btn-gold" onclick="createFolder()">Create</button></div>
+  </div>
+</div>
+
+<!-- Share Password Modal -->
+<div class="modal-overlay" id="sharePasswordModal">
+  <div class="modal" style="max-width:400px;"><div class="modal-header"><h2>Set Share Password</h2><button class="modal-close" onclick="closeSharePasswordModal()">✕</button></div>
+    <div class="modal-body"><div class="form-group"><label>Password for this folder</label><input type="password" id="modalSharePassword" placeholder="Enter password"><p class="form-hint">Users will need this password to access the shared folder</p></div></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeSharePasswordModal()">Cancel</button><button class="btn btn-success" onclick="saveFolderPassword()">Save</button></div>
+  </div>
+</div>
+
+<!-- Public Share View (appears when clicking shared link) -->
+<div class="public-view" id="publicView">
+  <div class="public-header"><h2>📁 Shared Folder</h2><p id="publicFolderName"></p></div>
+  <div id="publicContent"></div>
+</div>
+
+<script>
+// ==================== FOLDER STRUCTURE ====================
+let folderStructure = []; // {id, name, parentId, description, sharePassword, createdAt, createdBy}
+let selectedFolderId = null;
+let currentShareFolder = null;
+
+// Load folders from storage
+function loadFolders() {
+  const saved = localStorage.getItem('snt_folders');
+  if(saved) {
+    folderStructure = JSON.parse(saved);
+  } else {
+    // Create root folder
+    folderStructure = [{
+      id: 'root',
+      name: 'Root',
+      parentId: null,
+      description: 'Main folder',
+      sharePassword: null,
+      createdAt: new Date().toISOString(),
+      createdBy: 'system'
+    }];
+    saveFolders();
+  }
+  renderFolderTree();
+}
+
+function saveFolders() {
+  localStorage.setItem('snt_folders', JSON.stringify(folderStructure));
+  // Also sync to GAS
+  postToScript({action:'syncFolders', folders:folderStructure});
+}
+
+function getChildFolders(parentId) {
+  return folderStructure.filter(f => f.parentId === parentId);
+}
+
+function getFolderById(id) {
+  return folderStructure.find(f => f.id === id);
+}
+
+function getFolderPath(folderId) {
+  const path = [];
+  let current = getFolderById(folderId);
+  while(current && current.id !== 'root') {
+    path.unshift(current);
+    current = getFolderById(current.parentId);
+  }
+  if(current && current.id === 'root') path.unshift(current);
+  return path;
+}
+
+function renderFolderTree() {
+  const container = document.getElementById('folderTree');
+  const breadcrumb = document.getElementById('folderBreadcrumb');
+  if(!container) return;
+  
+  // Breadcrumb
+  if(selectedFolderId) {
+    const path = getFolderPath(selectedFolderId);
+    breadcrumb.innerHTML = path.map((f, i) => `
+      <div class="breadcrumb-item" onclick="navigateToFolder('${f.id}')">
+        ${f.id === 'root' ? '🏠' : '📁'} ${f.name} ${i < path.length-1 ? '›' : ''}
+      </div>
+    `).join('');
+  } else {
+    breadcrumb.innerHTML = '<div class="breadcrumb-item">🏠 Root</div>';
+  }
+  
+  // Folder tree
+  const folders = selectedFolderId ? getChildFolders(selectedFolderId) : getChildFolders('root');
+  if(folders.length === 0) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--gray-400);">No subfolders. Click "New Folder" to create one.</div>';
+  } else {
+    container.innerHTML = folders.map(folder => `
+      <div class="folder-item" onclick="selectFolder('${folder.id}')">
+        <div class="folder-name">
+          <span>📁</span>
+          <strong>${escapeHtml(folder.name)}</strong>
+          ${folder.description ? `<span style="font-size:.7rem;color:var(--gray-400);"> - ${escapeHtml(folder.description)}</span>` : ''}
+        </div>
+        <div class="folder-actions">
+          <button class="btn btn-info" onclick="event.stopPropagation();shareFolder('${folder.id}')" style="padding:3px 8px;font-size:.7rem;">🔗 Share</button>
+          <button class="btn btn-danger" onclick="event.stopPropagation();deleteFolder('${folder.id}')" style="padding:3px 8px;font-size:.7rem;">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function selectFolder(folderId) {
+  selectedFolderId = folderId;
+  renderFolderTree();
+  // Load items in this folder
+  loadItemsInFolder(folderId);
+}
+
+function navigateToFolder(folderId) {
+  selectedFolderId = folderId === 'root' ? null : folderId;
+  renderFolderTree();
+  loadItemsInFolder(folderId);
+}
+
+function loadItemsInFolder(folderId) {
+  // Filter items by folder assignment
+  const items = sections.flatMap(s => (s.items || []).filter(i => i.folderId === folderId));
+  currentItems = items.map(i => ({...i, sectionName: sections.find(s => s.id === i.section)?.name || i.section}));
+  document.getElementById('sectionSubtitle').textContent = `${currentItems.length} item${currentItems.length !== 1 ? 's' : ''} in this folder`;
+  renderItemsSimple();
+}
+
+function renderItemsSimple() {
+  const grid = document.getElementById('itemsGrid');
+  if(!currentItems.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📁</div><h3>No files in this folder</h3><p>Upload files to this folder from the main sections.</p></div>`;
+  } else {
+    grid.innerHTML = currentItems.map(item => `
+      <div class="item-card">
+        <div class="item-card-header">
+          <div class="item-type-icon">📄</div>
+          <div class="item-info">
+            <div class="item-name">${escapeHtml(item.title)}</div>
+            <div class="item-meta"><span class="item-date">${formatDate(item.date)}</span></div>
+          </div>
+        </div>
+        <div class="item-card-body">
+          <div class="item-description">${item.description || 'No description'}</div>
+          ${item.fileUrl ? `<button class="item-btn item-btn-view" onclick="window.open('${item.fileUrl}', '_blank')">Open</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// ==================== SHARE FUNCTIONALITY ====================
+function shareFolder(folderId) {
+  currentShareFolder = getFolderById(folderId);
+  if(!currentShareFolder) return;
+  
+  const shareUrl = `${window.location.origin}${window.location.pathname}?share=${folderId}`;
+  document.getElementById('shareLinkInput').value = shareUrl;
+  document.getElementById('shareSection').style.display = 'block';
+  
+  // Show if password exists
+  const pwdSection = document.getElementById('sharePasswordSection');
+  if(currentShareFolder.sharePassword) {
+    pwdSection.style.display = 'block';
+    document.getElementById('sharePassword').value = '●●●●●●';
+  } else {
+    pwdSection.style.display = 'none';
+  }
+}
+
+function copyShareLink() {
+  const input = document.getElementById('shareLinkInput');
+  input.select();
+  document.execCommand('copy');
+  showNotification('Share link copied!', 'success');
+}
+
+function toggleSharePassword() {
+  const section = document.getElementById('sharePasswordSection');
+  section.style.display = section.style.display === 'none' ? 'block' : 'none';
+  if(section.style.display === 'block') {
+    document.getElementById('sharePassword').value = '';
+    document.getElementById('sharePassword').focus();
+  }
+}
+
+function saveSharePassword() {
+  const pwd = document.getElementById('sharePassword').value;
+  if(currentShareFolder) {
+    currentShareFolder.sharePassword = pwd || null;
+    saveFolders();
+    showNotification(pwd ? 'Password set!' : 'Password removed', 'success');
+    document.getElementById('sharePasswordSection').style.display = 'none';
+  }
+}
+
+function saveFolderPassword() {
+  const pwd = document.getElementById('modalSharePassword').value;
+  if(currentShareFolder) {
+    currentShareFolder.sharePassword = pwd || null;
+    saveFolders();
+    closeSharePasswordModal();
+    showNotification(pwd ? 'Password protected!' : 'Password removed', 'success');
+  }
+}
+
+// ==================== CREATE / DELETE FOLDER ====================
+function openCreateFolderModal() {
+  const parentSelect = document.getElementById('parentFolderSelect');
+  const folders = [{id: 'root', name: 'Root'}, ...folderStructure.filter(f => f.id !== 'root')];
+  parentSelect.innerHTML = folders.map(f => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>${f.name}</option>`).join('');
+  document.getElementById('createFolderModal').classList.add('active');
+  document.getElementById('newFolderName').value = '';
+  document.getElementById('folderDescription').value = '';
+}
+
+function closeCreateFolderModal() {
+  document.getElementById('createFolderModal').classList.remove('active');
+}
+
+function createFolder() {
+  const name = document.getElementById('newFolderName').value.trim();
+  if(!name) { showNotification('Folder name required', 'error'); return; }
+  const parentId = document.getElementById('parentFolderSelect').value;
+  const description = document.getElementById('folderDescription').value;
+  
+  const newFolder = {
+    id: 'folder_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+    name: name,
+    parentId: parentId,
+    description: description,
+    sharePassword: null,
+    createdAt: new Date().toISOString(),
+    createdBy: currentUser
+  };
+  folderStructure.push(newFolder);
+  saveFolders();
+  closeCreateFolderModal();
+  renderFolderTree();
+  showNotification(`Folder "${name}" created!`, 'success');
+}
+
+function deleteFolder(folderId) {
+  if(folderId === 'root') { showNotification('Cannot delete root folder', 'error'); return; }
+  if(!confirm('Delete this folder and all its contents? This cannot be undone.')) return;
+  
+  // Delete all items in this folder
+  sections.forEach(s => {
+    if(s.items) s.items = s.items.filter(i => i.folderId !== folderId);
+  });
+  // Delete subfolders
+  folderStructure = folderStructure.filter(f => f.id !== folderId && f.parentId !== folderId);
+  saveFolders();
+  if(selectedFolderId === folderId) selectedFolderId = null;
+  renderFolderTree();
+  loadItemsInFolder(selectedFolderId || 'root');
+  showNotification('Folder deleted', 'success');
+}
+
+// ==================== PUBLIC SHARE HANDLING ====================
+function checkForSharedLink() {
+  const params = new URLSearchParams(window.location.search);
+  const shareId = params.get('share');
+  if(shareId) {
+    const folder = getFolderById(shareId);
+    if(folder) {
+      showPublicShare(folder);
+    }
+  }
+}
+
+function showPublicShare(folder) {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appContainer').classList.remove('active');
+  document.getElementById('publicView').classList.add('active');
+  document.getElementById('publicFolderName').textContent = folder.name;
+  
+  if(folder.sharePassword) {
+    document.getElementById('publicContent').innerHTML = `
+      <div class="share-password-prompt">
+        <h3>🔒 Password Protected</h3>
+        <p>This folder is password protected. Enter the password to view contents.</p>
+        <input type="password" id="publicPassword" placeholder="Enter password" style="width:100%;padding:10px;margin:15px 0;border:2px solid var(--gray-200);border-radius:6px;">
+        <button class="btn btn-gold" onclick="verifyPublicPassword('${folder.id}')">Access Folder</button>
+      </div>
+    `;
+  } else {
+    loadPublicFolderContents(folder.id);
+  }
+}
+
+function verifyPublicPassword(folderId) {
+  const entered = document.getElementById('publicPassword').value;
+  const folder = getFolderById(folderId);
+  if(folder && folder.sharePassword === entered) {
+    loadPublicFolderContents(folderId);
+  } else {
+    showNotification('Incorrect password', 'error');
+  }
+}
+
+function loadPublicFolderContents(folderId) {
+  const items = sections.flatMap(s => (s.items || []).filter(i => i.folderId === folderId));
+  const subfolders = getChildFolders(folderId);
+  
+  let html = `<div class="public-files">`;
+  if(subfolders.length) {
+    html += `<h3>📁 Subfolders</h3><div style="display:grid;gap:10px;margin-bottom:20px;">`;
+    subfolders.forEach(f => {
+      html += `<div style="padding:12px;background:var(--gray-100);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span>📁 <strong>${escapeHtml(f.name)}</strong> ${f.description ? `- ${escapeHtml(f.description)}` : ''}</span>
+        <button class="btn btn-info" onclick="loadPublicFolderContents('${f.id}')" style="padding:4px 12px;">Open</button>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  
+  if(items.length) {
+    html += `<h3>📄 Files</h3><div style="display:grid;gap:10px;">`;
+    items.forEach(item => {
+      html += `<div style="padding:12px;background:white;border:1px solid var(--gray-200);border-radius:8px;">
+        <div><strong>${escapeHtml(item.title)}</strong> <span style="font-size:.75rem;color:var(--gray-400);">${formatDate(item.date)}</span></div>
+        ${item.description ? `<div style="font-size:.8rem;color:var(--gray-600);margin-top:5px;">${escapeHtml(stripHtml(item.description))}</div>` : ''}
+        ${item.fileUrl ? `<button class="btn btn-primary" onclick="window.open('${item.fileUrl}', '_blank')" style="margin-top:8px;padding:4px 12px;">Open File</button>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  
+  if(!subfolders.length && !items.length) {
+    html += `<div style="text-align:center;padding:50px;"><p>This folder is empty.</p></div>`;
+  }
+  
+  html += `</div>`;
+  document.getElementById('publicContent').innerHTML = html;
+}
+
+function loadPublicFolderContents(folderId) {
+  loadPublicFolderContents(folderId);
+}
+
+// ==================== EXISTING FUNCTIONS (condensed) ====================
+const DEFAULT_USERS = [{username:'admin@example.com', password:'admin123', name:'Admin', role:'admin'}];
+let currentUser = null, userRole = 'user', currentSectionIndex = 0;
+let sections = buildSectionsFromCSV(TABS_CSV);
+let currentItems = [];
+
+const TABS_CSV = `section_id,section_name,section_icon,section_flat,section_description
+routine-epi,Routine EPI,chart,false,Epidemiological data
+intervention,Intervention,activity,false,Intervention data
+analysis,Analysis,chart,false,Data analysis
+geospatial,Geospatial,map,false,Maps
+report,Reports,fileText,false,Reports
+meeting,Meetings,meeting,true,Meeting minutes
+email,Email,email,true,Email communications
+nextstep,Assign Tasks,nextstep,true,Action items`;
+
+function buildSectionsFromCSV(csv) {
+  const lines = csv.trim().split('\n');
+  const sections = [{id:'all',name:'All Items',icon:'folder',description:'Browse all',flat:true,items:[]}];
+  for(let i=1; i<lines.length; i++) {
+    const [id,name,icon,flat,desc] = lines[i].split(',');
+    sections.push({id,name,icon,flat:flat==='true',description:desc,items:[]});
+  }
+  return sections;
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const u = document.getElementById('username').value.trim().toLowerCase();
+  const p = document.getElementById('password').value;
+  const users = DEFAULT_USERS;
+  const match = users.find(x => x.username.toLowerCase() === u && x.password === p);
+  if(match) {
+    currentUser = match.name;
+    userRole = match.role;
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('appContainer').classList.add('active');
+    document.getElementById('userDisplay').textContent = currentUser;
+    document.getElementById('roleDisplay').textContent = userRole;
+    loadFolders();
+    renderTabs();
+    loadSection(0);
+  } else {
+    document.getElementById('loginError').classList.add('show');
+    setTimeout(()=>document.getElementById('loginError').classList.remove('show'),3000);
+  }
+}
+
+async function handleSignUp(e) {
+  e.preventDefault();
+  const name = document.getElementById('suName').value.trim();
+  const username = document.getElementById('suUsername').value.trim().toLowerCase();
+  const password = document.getElementById('suPassword').value;
+  DEFAULT_USERS.push({username, password, name, role:'user'});
+  showNotification('Account created! Please sign in.', 'success');
+  switchAuthTab('signin');
+}
+
+function switchAuthTab(tab) {
+  const isIn = tab === 'signin';
+  document.getElementById('panelSignIn').style.display = isIn ? 'block' : 'none';
+  document.getElementById('panelSignUp').style.display = isIn ? 'none' : 'block';
+  document.getElementById('tabSignIn').style.background = isIn ? 'var(--primary)' : '#fff';
+  document.getElementById('tabSignIn').style.color = isIn ? '#fff' : 'var(--gray-600)';
+  document.getElementById('tabSignUp').style.background = isIn ? '#fff' : 'var(--primary)';
+  document.getElementById('tabSignUp').style.color = isIn ? 'var(--gray-600)' : '#fff';
+}
+
+function togglePw(id,btn){const inp=document.getElementById(id);const show=inp.type==='password';inp.type=show?'text':'password';btn.innerHTML=show?'🙈':'👁️';}
+
+function logout() {
+  currentUser = null;
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('appContainer').classList.remove('active');
+  document.getElementById('publicView').classList.remove('active');
+}
+
+function renderTabs() {
+  document.getElementById('sectionTabs').innerHTML = sections.map((s,i)=>`<button class="section-tab ${i===0?'active':''}" onclick="loadSection(${i})">${s.name}<span class="tab-count">${s.items?.length||0}</span></button>`).join('');
+}
+
+function loadSection(idx) {
+  currentSectionIndex = idx;
+  const s = sections[idx];
+  document.getElementById('sectionTitle').textContent = s.name;
+  currentItems = s.items || [];
+  document.getElementById('sectionSubtitle').textContent = `${currentItems.length} items`;
+  renderItemsSimple();
+}
+
+function prevSection(){if(currentSectionIndex>0)loadSection(currentSectionIndex-1);}
+function nextSection(){if(currentSectionIndex<sections.length-1)loadSection(currentSectionIndex+1);}
+
+function handleSearch(q){/* simplified */}
+
+function formatDate(d){if(!d)return'';return new Date(d).toLocaleDateString();}
+function stripHtml(html){const t=document.createElement('div');t.innerHTML=html;return t.textContent||'';}
+function escapeHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showNotification(msg,type){const n=document.createElement('div');n.className=`notification ${type} show`;n.textContent=msg;document.body.appendChild(n);setTimeout(()=>n.remove(),3000);}
+function postToScript(payload){/* stub */}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  checkForSharedLink();
+});
+</script>
+</body>
+</html>
